@@ -191,3 +191,17 @@ class PhiConfig(PretrainedConfig):
             )
         if rope_scaling_factor is None or not isinstance(rope_scaling_factor, float) or rope_scaling_factor <= 1.0:
             raise ValueError(f"`rope_scaling`'s factor field must be a float > 1, got {rope_scaling_factor}")
+
+
+class LlavaPhiConfig(PretrainedConfig):
+    model_type = "phi"
+    
+    def __init__(
+        self,
+        mm_vision_tower="openai/clip-vit-large-patch14",  # Add default vision tower
+        mm_hidden_size=768,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.mm_vision_tower = mm_vision_tower
+        self.mm_hidden_size = mm_hidden_size

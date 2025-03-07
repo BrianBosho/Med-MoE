@@ -92,8 +92,7 @@ GPUS=(0 1)
 for IDX in {0..1}; do
     GPU_IDX=${GPUS[$IDX]}
     PORT=$((${GPUS[$IDX]} + 29500))
-    MASTER_PORT_ENV="MASTER_PORT=$PORT"
-    deepspeed --include localhost:$GPU_IDX --master_port $PORT model_vqa_med.py \
+    deepspeed --include localhost:$GPU_IDX --master_port=$PORT model_vqa_med.py \
         --model-path your_model_path \
         --question-file ./test_rad.json \
         --image-folder ./3vqa/images \

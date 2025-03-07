@@ -146,16 +146,45 @@ class LlavaMetaForCausalLM(ABC):
         return self.get_model().get_video_tower()
 
     def encode_images(self, images):
-
-        # import ipdb
-        # ipdb.set_trace()
+        """
+        Encode images to image features, ensuring device consistency throughout the pipeline.
+        """
+        # Get the target device from the model
+        target_device = next(self.get_model().parameters()).device
+        
+        # Process through the image tower and ensure consistent device
         image_features = self.get_model().get_image_tower()(images)
+        
+        # Make sure image features are on the same device as the model
+        if isinstance(image_features, list):
+            image_features = [feat.to(device=target_device) for feat in image_features]
+        else:
+            image_features = image_features.to(device=target_device)
+        
+        # Project the features with the mm_projector, ensuring same device
         image_features = self.get_model().mm_projector.forward_image(image_features)
+        
         return image_features
 
     def encode_videos(self, videos):  # [mini_b, c, t, h, w]
-        video_features = self.get_model().get_video_tower()(videos)  # [mini_b, t, n, c]
+        # Get the target device from the model
+        target_device = next(self.get_model().parameters()).device
+        
+        # Process through the video tower and ensure consistent device
+        video_tower = self.get_model().get_video_tower()
+        # Handle videos that might be None or empty
+        if videos is None or (isinstance(videos, list) and len(videos) == 0):
+            return None
+        
+        videos_on_device = videos.to(device=target_device, dtype=video_tower.dtype)
+        video_features = video_tower(videos_on_device)  # [mini_b, t, n, c]
+        
+        # Make sure video features are on the correct device
+        video_features = video_features.to(device=target_device)
+        
+        # Project the features with the mm_projector, ensuring same device
         video_features = self.get_model().mm_projector.forward_video(video_features)
+        
         return video_features
 
     def prepare_inputs_labels_for_multimodal(
@@ -427,7 +456,7 @@ class LlavaQWenMetaForCausalLM(LlavaMetaForCausalLM):
             if past_key_values is not None and (image_tower is not None or video_tower is not None) and images is not None and input_ids.shape[1] == 1:
                 # import ipdb
                 # ipdb.set_trace()
-                target_shape = past_key_values[-1][-1].shape[-3] + 1  # FIXME: token_len in dim=-3
+                target_shape = past_key_values[-1][-3] + 1  # FIXME: token_len in dim=-3
                 attention_mask = torch.cat((attention_mask, torch.ones(
                     (attention_mask.shape[0], target_shape - attention_mask.shape[1]),
                     dtype=attention_mask.dtype,

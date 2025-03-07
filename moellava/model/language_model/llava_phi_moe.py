@@ -27,7 +27,8 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 
-from deepspeed.moe.layer import MoE
+# from deepspeed.moe.layer import MoE
+from moe.layer import MoE
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union, List
 import torch.nn as nn
@@ -490,7 +491,7 @@ class MoELLaVAPhiForCausalLM(PhiForCausalLM, LlavaMetaForCausalLM):
                 capacity_factor=4,
                 eval_capacity_factor=4,
                 min_capacity=0,
-                router='Your path',
+                # router='Your path',
                 use_residual=model_args.use_residual,
                 training=True,
                 drop_tokens =False,

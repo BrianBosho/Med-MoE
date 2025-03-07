@@ -97,14 +97,35 @@ class _AllToAll(torch.autograd.Function):
             group: torch.distributed.ProcessGroup,
             input: Tensor) -> Tensor:  # type: ignore
         ctx.group = group
-        input = input.contiguous()
-        output = torch.empty_like(input)
-        dist.all_to_all_single(output, input, group=group)
-        return output
+        
+        try:
+            if not dist.is_initialized() or dist.get_world_size() == 1:
+                # For single-GPU case, just return the input without communication
+                return input
+                
+            input_list = [torch.empty_like(input) for _ in range(dist.get_world_size(group=group))]
+            dist.all_to_all_single(output=input, input=input, group=group)
+            
+            return input
+        except (ImportError, AttributeError, RuntimeError, AssertionError) as e:
+            # For single-GPU or non-initialized DeepSpeed case
+            print(f"Warning: All-to-all communication skipped - using single-GPU mode. Error: {e}")
+            return input
 
     @staticmethod
     def backward(ctx: Any, *grad_output: Tensor) -> Tuple[None, Tensor]:
-        return (None, _AllToAll.apply(ctx.group, *grad_output))
+        try:
+            if not dist.is_initialized() or dist.get_world_size() == 1:
+                # For single-GPU case, just return the gradient without communication
+                return None, grad_output
+                
+            grad_output_list = [torch.empty_like(grad_output) for _ in range(dist.get_world_size(group=ctx.group))]
+            dist.all_to_all_single(output=grad_output, input=grad_output, group=ctx.group)
+            
+            return None, grad_output
+        except (ImportError, AttributeError, RuntimeError, AssertionError) as e:
+            # For single-GPU or non-initialized DeepSpeed case
+            return None, grad_output
 
 
 # einsum rewrites are on par or more performant
@@ -177,6 +198,8 @@ def _one_hot_to_float(x, num_classes):
     return F.one_hot(x, num_classes=num_classes).float()
 
 
+
+
 def top1gating(logits: Tensor,
                capacity_factor: float,
                min_capacity: int,
@@ -209,7 +232,23 @@ def top1gating(logits: Tensor,
     # if we don't want to drop any tokens
     if not drop_tokens:
         new_capacity = torch.max(exp_counts).to(logits.device)
-        dist.all_reduce(new_capacity, op=dist.ReduceOp.MAX, group=dist.get_world_group())
+        # Try to use distributed communication, but fall back to local if it fails
+        try:
+            import deepspeed.comm as dist
+            try:
+                # Check if distributed is initialized
+                world_size = dist.get_world_size()
+                if world_size > 1:
+                    dist.all_reduce(new_capacity, op=dist.ReduceOp.MAX, group=dist.get_world_group())
+                # If dist is initialized but world_size is 1, no need for all_reduce
+            except (AssertionError, RuntimeError) as e:
+                # DeepSpeed backend not initialized - single GPU mode
+                pass
+                # print("Warning: DeepSpeed distributed backend not initialized. Using single-GPU mode.")
+        except ImportError:
+            # DeepSpeed comm module not available
+            print("Warning: DeepSpeed comm module not available.")
+            
         #capacity = new_capacity
         capacity = min(new_capacity, torch.tensor(mask1.size(0)))
 

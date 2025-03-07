@@ -11,6 +11,7 @@ class CLIPVisionTower(nn.Module):
         self.is_loaded = False
 
         self.image_tower_name = image_tower
+        self.image_tower = image_tower
         self.select_layer = args.mm_vision_select_layer
         self.select_feature = getattr(args, 'mm_vision_select_feature', 'patch')
 
@@ -40,17 +41,55 @@ class CLIPVisionTower(nn.Module):
 
     @torch.no_grad()
     def forward(self, images):
+        if not self.is_loaded:
+            self.load_model()
+        
+        # Get expected image size from the config
+        expected_image_size = self.config.image_size
+        
         if type(images) is list:
             image_features = []
             for image in images:
-                image_forward_out = self.image_tower(image.to(device=self.device, dtype=self.dtype).unsqueeze(0), output_hidden_states=True)
-                image_feature = self.feature_select(image_forward_out).to(image.dtype)
+                # Check and resize image if necessary
+                if (image.shape[-2] != expected_image_size or 
+                    image.shape[-1] != expected_image_size):
+                    # Log warning about resizing
+                    print(f"Warning: Resizing image from {image.shape[-2]}x{image.shape[-1]} to {expected_image_size}x{expected_image_size}")
+                    # Use interpolate to resize the image
+                    image = torch.nn.functional.interpolate(
+                        image.unsqueeze(0),  # Add batch dimension
+                        size=(expected_image_size, expected_image_size),
+                        mode='bilinear',
+                        align_corners=False
+                    ).squeeze(0)  # Remove batch dimension
+                    
+                # Ensure image is on the correct device and dtype
+                device_image = image.to(device=self.device, dtype=self.dtype)
+                image_forward_out = self.image_tower(device_image.unsqueeze(0), output_hidden_states=True)
+                # Maintain the device of the output
+                image_feature = self.feature_select(image_forward_out).to(device=self.device, dtype=image.dtype)
                 image_features.append(image_feature)
+            return image_features
         else:
-            image_forward_outs = self.image_tower(images.to(device=self.device, dtype=self.dtype), output_hidden_states=True)
-            image_features = self.feature_select(image_forward_outs).to(images.dtype)
-
-        return image_features
+            # Check and resize images if necessary
+            if (images.shape[-2] != expected_image_size or 
+                images.shape[-1] != expected_image_size):
+                # Log warning about resizing
+                print(f"Warning: Resizing images from {images.shape[-2]}x{images.shape[-1]} to {expected_image_size}x{expected_image_size}")
+                # Use interpolate to resize the image batch
+                images = torch.nn.functional.interpolate(
+                    images,
+                    size=(expected_image_size, expected_image_size),
+                    mode='bilinear',
+                    align_corners=False
+                )
+                
+            # Ensure images are on the correct device and dtype
+            device_images = images.to(device=self.device, dtype=self.dtype)
+            image_forward_outs = self.image_tower(device_images, output_hidden_states=True)
+            # Maintain the device of the output
+            image_features = self.feature_select(image_forward_outs).to(device=self.device, dtype=images.dtype)
+            return image_features
 
     @property
     def dummy_feature(self):

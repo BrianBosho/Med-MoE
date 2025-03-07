@@ -20,6 +20,8 @@ from moellava.model.language_model.llava_qwen_moe import EvalMoELLaVAQWenForCaus
 from moellava.model.language_model.llava_qwen import LlavaQWenForCausalLM
 from deepspeed.moe.layer import MoE
 
+# from encoders import EncoderVisionTower
+
 from moellava.model.language_model.llava_llama_moe import EvalMoELLaVALlamaForCausalLM
 from moellava.model.language_model.llava_llama import LlavaLlamaForCausalLM
 
@@ -51,6 +53,24 @@ from moellava.model.language_model.qwen.tokenization_qwen import QWenTokenizer
 def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, load_4bit=False, device_map="auto",
                           device="cuda", padding_side="right", merge=False, **kwargs):
     kwargs = {"device_map": device_map, **kwargs}
+
+    # Initialize processor at the beginning
+    processor = {'image': None, 'video': None}
+
+    # Load config first to check for vision tower
+    if model_base:
+        config_path = model_base
+    else:
+        config_path = model_path
+        
+    try:
+        config = AutoConfig.from_pretrained(config_path)
+        if hasattr(config, 'mm_vision_tower') and config.mm_vision_tower is not None:
+            from transformers import CLIPImageProcessor
+            image_processor = CLIPImageProcessor.from_pretrained(config.mm_vision_tower)
+            processor['image'] = image_processor
+    except Exception as e:
+        print(f"Warning: Failed to load config or image processor: {e}")
 
     if device != "cuda":
         kwargs['device_map'] = {"": device}
@@ -93,6 +113,21 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
             elif 'phi' in model_base.lower():
                 model = LlavaPhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True, config=lora_cfg_pretrained, **kwargs)
                 model.config.eos_token_id = tokenizer.eos_token_id
+                # Add image processor initialization
+                if hasattr(model.config, 'mm_vision_tower') and model.config.mm_vision_tower is not None:
+                    from transformers import CLIPImageProcessor
+                    image_processor = CLIPImageProcessor.from_pretrained(model.config.mm_vision_tower)
+                    processor = {
+                        'image': image_processor,
+                        'video': None
+                    }
+                    
+                    # Load and initialize the vision tower if it exists
+                    if hasattr(model, 'get_image_tower'):
+                        image_tower = model.get_image_tower()
+                        if not image_tower.is_loaded:
+                            image_tower.load_model()
+                        image_tower.to(device=device, dtype=torch.float16)
             elif 'minicpm' in model_base.lower():
                 model = LlavaMiniCPMForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True, config=lora_cfg_pretrained, **kwargs)
                 model.config.eos_token_id = tokenizer.eos_token_id
@@ -168,6 +203,21 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
                 tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, padding_side=padding_side)
                 model = EvalMoELLaVAPhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, config=lora_cfg_pretrained, **kwargs)
                 model.config.eos_token_id = tokenizer.eos_token_id
+                # Add image processor initialization
+                if hasattr(model.config, 'mm_vision_tower') and model.config.mm_vision_tower is not None:
+                    from transformers import CLIPImageProcessor
+                    image_processor = CLIPImageProcessor.from_pretrained(model.config.mm_vision_tower)
+                    processor = {
+                        'image': image_processor,
+                        'video': None
+                    }
+                    
+                    # Load and initialize the vision tower if it exists
+                    if hasattr(model, 'get_image_tower'):
+                        image_tower = model.get_image_tower()
+                        if not image_tower.is_loaded:
+                            image_tower.load_model()
+                        image_tower.to(device=device, dtype=torch.float16)
             elif 'minicpm' in model_name.lower():
                 tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, padding_side=padding_side)
                 model = EvalMoELLaVAMiniCPMForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, config=lora_cfg_pretrained, **kwargs)
@@ -175,7 +225,7 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
             elif 'stablelm' in model_name.lower():
                 from moellava.model.language_model.stablelm.tokenization_arcade100k import Arcade100kTokenizer
                 #tokenizer = Arcade100kTokenizer.from_pretrained(model_path, use_fast=False, padding_side=padding_side)
-                tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, padding_side=padding_side)
+                tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False,trust_remote_code=True, padding_side=padding_side)
                 model = EvalMoELLaVAStablelmForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,trust_remote_code=True,config=lora_cfg_pretrained, **kwargs)
                 model.config.eos_token_id = tokenizer.eos_token_id
         
@@ -234,6 +284,21 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
                                                          checkpoint=None,
                                                          replace_with_kernel_inject=False)
                     model = ds_engine.module
+                    # Add image processor initialization
+                    if hasattr(model.config, 'mm_vision_tower') and model.config.mm_vision_tower is not None:
+                        from transformers import CLIPImageProcessor
+                        image_processor = CLIPImageProcessor.from_pretrained(model.config.mm_vision_tower)
+                        processor = {
+                            'image': image_processor,
+                            'video': None
+                        }
+                        
+                        # Load and initialize the vision tower if it exists
+                        if hasattr(model, 'get_image_tower'):
+                            image_tower = model.get_image_tower()
+                            if not image_tower.is_loaded:
+                                image_tower.load_model()
+                            image_tower.to(device=device, dtype=torch.float16)
                 else:
                     model = LlavaPhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True, config=cfg_pretrained, **kwargs)
                 model.config.eos_token_id = tokenizer.eos_token_id
@@ -390,7 +455,6 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
                    
                     deepspeed.init_distributed(dist_backend='nccl')
                    
-
                     # Initialize the DeepSpeed-Inference engine
                     ds_engine = deepspeed.init_inference(model,
                                                          # mp_size=2,
@@ -398,8 +462,38 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
                                                          checkpoint=None,
                                                          replace_with_kernel_inject=False)
                     model = ds_engine.module
+                    # Add image processor initialization
+                    if hasattr(model.config, 'mm_vision_tower') and model.config.mm_vision_tower is not None:
+                        from transformers import CLIPImageProcessor
+                        image_processor = CLIPImageProcessor.from_pretrained(model.config.mm_vision_tower)
+                        processor = {
+                            'image': image_processor,
+                            'video': None
+                        }
+                        
+                        # Load and initialize the vision tower if it exists
+                        if hasattr(model, 'get_image_tower'):
+                            image_tower = model.get_image_tower()
+                            if not image_tower.is_loaded:
+                                image_tower.load_model()
+                            image_tower.to(device=device, dtype=torch.float16)
                 else:
                     model = LlavaPhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
+                    # Add image processor initialization
+                    if hasattr(model.config, 'mm_vision_tower') and model.config.mm_vision_tower is not None:
+                        from transformers import CLIPImageProcessor
+                        image_processor = CLIPImageProcessor.from_pretrained(model.config.mm_vision_tower)
+                        processor = {
+                            'image': image_processor,
+                            'video': None
+                        }
+                        
+                        # Load and initialize the vision tower if it exists
+                        if hasattr(model, 'get_image_tower'):
+                            image_tower = model.get_image_tower()
+                            if not image_tower.is_loaded:
+                                image_tower.load_model()
+                            image_tower.to(device=device, dtype=torch.float16)
                 model.config.eos_token_id = tokenizer.eos_token_id
             
             elif 'qwen' in model_name.lower() and '1.5' in model_name.lower():
@@ -504,10 +598,6 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
                 model = AutoModelForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
 
     # ==========================================================================================================
-    processor = {'image': None, 'video': None}
-
-    # import ipdb
-    # ipdb.set_trace()
     if 'llava' in model_name.lower():
         mm_use_im_start_end = getattr(model.config, "mm_use_im_start_end", False)
         mm_use_im_patch_token = getattr(model.config, "mm_use_im_patch_token", True)
@@ -540,5 +630,45 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
         context_len = model.config.max_sequence_length
     else:
         context_len = 2048
+
+    # Add fallback for image processor if it's still None
+    if processor['image'] is None:
+        try:
+            print("Image processor is None, trying to load default CLIP tower as fallback")
+            from transformers import CLIPImageProcessor, CLIPVisionModel
+            from moellava.model.multimodal_encoder.clip_encoder import CLIPVisionTower
+            
+            # Create a vision tower configuration
+            vision_tower_name = "openai/clip-vit-large-patch14"
+            
+            # Create a configuration object with necessary attributes
+            class VisionConfig:
+                def __init__(self):
+                    self.mm_vision_select_layer = -2  # Default value
+                    self.mm_vision_select_feature = 'patch'  # Default value
+            
+            vision_config = VisionConfig()
+            
+            # Create and load the vision tower
+            vision_tower = CLIPVisionTower(vision_tower_name, args=vision_config)
+            vision_tower.load_model()
+            vision_tower.to(device=device, dtype=torch.float16)
+            
+            # Set the processor
+            processor['image'] = vision_tower.image_processor
+            
+            # Attach the vision tower to the model if it has the right methods
+            if hasattr(model, 'get_model') and hasattr(model, 'get_image_tower'):
+                # Set the vision tower
+                if 'llava' in model_name.lower() and 'phi' in model_name.lower():
+                    print("Attaching vision tower to model")
+                    setattr(model.get_model(), 'image_tower', vision_tower)
+                    # Also set the config
+                    if not hasattr(model.config, 'mm_vision_tower') or model.config.mm_vision_tower is None:
+                        model.config.mm_vision_tower = vision_tower_name
+            
+            print("Successfully loaded fallback vision tower and processor")
+        except Exception as e:
+            print(f"Warning: Failed to load fallback vision tower and processor: {e}")
 
     return tokenizer, model, processor, context_len

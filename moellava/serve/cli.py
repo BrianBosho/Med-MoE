@@ -30,6 +30,21 @@ def main(args):
 
     model_name = get_model_name_from_path(args.model_path)
     tokenizer, model, processor, context_len = load_pretrained_model(args.model_path, args.model_base, model_name, args.load_8bit, args.load_4bit, device=args.device)
+    # check if load pretrained model is successful
+    if model is None:
+        print(f"Failed to load model from {args.model_path}")
+    else:
+        print(f"Successfully loaded model from {args.model_path}")
+        # check tokenizer and processor are loaded successfully
+    if tokenizer is None or processor is None:
+        print(f"Failed to load tokenizer or processor from {args.model_path}")
+    else:
+        print(f"Successfully loaded tokenizer and processor from {args.model_path}")
+        # check if image processor is loaded successfully
+    if processor['image'] is None:
+        print(f"Failed to load image processor from {args.model_path}")
+    else:
+        print(f"Successfully loaded image processor from {args.model_path}")
     image_processor = processor['image']
     if 'qwen' in model_name.lower():  # FIXME: first
         conv_mode = "qwen"
@@ -100,14 +115,19 @@ def main(args):
         streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
 
         with torch.inference_mode():
+            # Create a proper attention mask
+            attention_mask = torch.ones_like(input_ids)
+            
             output_ids = model.generate(
                 input_ids,
+                attention_mask=attention_mask,  # Add attention mask
                 images=image_tensor,
                 do_sample=True if args.temperature > 0 else False,
                 temperature=args.temperature,
                 max_new_tokens=args.max_new_tokens,
                 streamer=streamer,
                 use_cache=True,
+                pad_token_id=tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id,  # Explicitly set pad_token_id
                 stopping_criteria=[stopping_criteria])
 
         outputs = tokenizer.decode(output_ids[0, input_ids.shape[1]:]).strip()

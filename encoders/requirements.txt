@@ -1,0 +1,4 @@
+torch>=1.7.0
+Pillow>=7.1.2
+transformers>=4.26.0  # For both CLIP and SigCLIP from HuggingFace
+requests>=2.25.0  # For example script

@@ -2,7 +2,7 @@ import argparse
 import json
 import collections
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
-from moellava.eval.eval_metrics.evaluate_metrics import calculate_exactmatch, calculate_f1score, bleu, calculate_appearance_with_normalization
+from eval_metrics.evaluate_metrics import calculate_exactmatch, calculate_f1score, bleu, calculate_appearance_with_normalization
 from tabulate import tabulate
 
 import warnings
@@ -30,11 +30,42 @@ def evaluate(gt, pred):
     closed_questions_correct=0
     wrong_answers = []
 
+    # Print sample data to understand the format
+    print("GT sample item keys:", list(gt[0].keys()) if gt else "Empty GT")
+    print("Pred sample item keys:", list(pred[0].keys()) if pred else "Empty Pred")
+
     for gt_item, pred_item in zip(gt, pred):
-        gt_results = gt_item.get('conversations', gt_item.get('conversatons'))
-        gt_value = gt_results[1]['value'].lower()
+        # Handle different GT formats
+        if 'conversations' in gt_item:
+            gt_results = gt_item['conversations']
+            gt_value = gt_results[1]['value'].lower()
+        elif 'conversatons' in gt_item:
+            gt_results = gt_item['conversatons']
+            gt_value = gt_results[1]['value'].lower()
+        elif 'answer' in gt_item:
+            # Direct answer field
+            gt_value = gt_item['answer'].lower()
+        elif 'gt_answers' in gt_item:
+            # Some datasets use gt_answers field
+            gt_value = gt_item['gt_answers'].lower() if isinstance(gt_item['gt_answers'], str) else gt_item['gt_answers'][0].lower()
+        else:
+            # Try to find any field that might contain the answer
+            possible_answer_fields = ['ans', 'gt', 'ground_truth', 'label']
+            for field in possible_answer_fields:
+                if field in gt_item:
+                    gt_value = gt_item[field].lower()
+                    break
+            else:
+                print(f"Warning: Could not find answer field in GT item: {gt_item.keys()}")
+                continue  # Skip this item if we can't find an answer
+        
+        # Get prediction
         pred_value = pred_item['text'].lower()
-        answer_type = gt_item['answer_type']
+        
+        # Get answer type, default to 'open' if not specified
+        answer_type = gt_item.get('answer_type', 'open')
+        
+        # Continue with existing evaluation logic
         if answer_type == 'open' or answer_type == 'OPEN':
             scores['exact_match'].append(calculate_exactmatch(pred_value, gt_value))
             f1_score, precision, recall = calculate_f1score(pred_value, gt_value)
@@ -60,16 +91,25 @@ def evaluate(gt, pred):
             else:
                 closed_questions_correct += 1  # Update the count of correct answers
 
-    exact_match_avg = sum(scores['exact_match']) / len(scores['exact_match'])
-    f1_score_avg = sum(scores['f1']) / len(scores['f1'])
-    precision_avg = sum(scores['precision']) / len(scores['precision'])
-    recall_avg = sum(scores['recall']) / len(scores['recall'])
-    bleu_scores_avg = [sum(score_list) / len(score_list) for score_list in zip(*scores['bleu_scores'])]
+    # Safe average calculation with empty list handling
+    def safe_avg(lst):
+        return sum(lst) / len(lst) if lst else 0
 
+    exact_match_avg = safe_avg(scores['exact_match'])
+    f1_score_avg = safe_avg(scores['f1'])
+    precision_avg = safe_avg(scores['precision']) 
+    recall_avg = safe_avg(scores['recall'])
+    
+    # Handle empty bleu scores list
+    if scores['bleu_scores']:
+        bleu_scores_avg = [sum(score_list) / len(score_list) for score_list in zip(*scores['bleu_scores'])]
+    else:
+        bleu_scores_avg = [0, 0, 0]  # Default to zeros
+    
     closed_score = (closed_questions_correct / closed_questions_count * 100) if closed_questions_count else 0
-    closed_f1_score_avg = sum(closed_scores['f1']) / len(closed_scores['f1'])
-    closed_precision_avg = sum(closed_scores['precision']) / len(closed_scores['precision'])
-    closed_recall_avg = sum(closed_scores['recall']) / len(closed_scores['recall'])
+    closed_f1_score_avg = safe_avg(closed_scores['f1'])
+    closed_precision_avg = safe_avg(closed_scores['precision'])
+    closed_recall_avg = safe_avg(closed_scores['recall'])
 
     results_table = tabulate(
         [

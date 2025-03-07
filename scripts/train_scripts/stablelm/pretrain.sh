@@ -1,5 +1,4 @@
-
-VT_VERSION=./clip-vit-large-patch14-336
+VT_VERSION="openai/clip-vit-large-patch14-336"
 
 JSON_FOLDER="./data/alignment/llava_med_alignment_500k_filter.json"
 IMAGE_FOLDER="./data/images"

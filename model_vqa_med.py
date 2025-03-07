@@ -24,6 +24,8 @@ import math
 
 def split_list(lst, n):
     """Split a list into n (roughly) equal-sized chunks"""
+    if len(lst) == 0:
+        return [lst]  # Return a list containing the empty list
     chunk_size = math.ceil(len(lst) / n)  # integer division
     return [lst[i:i+chunk_size] for i in range(0, len(lst), chunk_size)]
 
@@ -97,6 +99,31 @@ def patch_config(config):
 
 
 
+def load_jsonl(file_path):
+    """Load a jsonl file into a list of dictionaries."""
+    data = []
+    with open(os.path.expanduser(file_path), "r") as f:
+        for line in f:
+            data.append(json.loads(line))
+    return data
+
+
+def load_questions(file_path):
+    """Load questions from either JSON or JSONL format."""
+    file_path = os.path.expanduser(file_path)
+    if file_path.endswith('.jsonl'):
+        # Load JSONL file
+        data = []
+        with open(file_path, "r") as f:
+            for line in f:
+                data.append(json.loads(line))
+        return data
+    else:
+        # Load regular JSON file
+        with open(file_path, "r") as f:
+            return json.load(f)
+
+
 def eval_model(args):
     # Model
     disable_torch_init()
@@ -109,7 +136,14 @@ def eval_model(args):
         print(model)
         fea_hooks = get_gating_logit_by_hook(model)
         all_gating_logits = {}
-    questions = json.load(open(os.path.expanduser(args.question_file), "r"))
+    
+    questions = load_questions(os.path.expanduser(args.question_file))
+    print(f"Loaded {len(questions)} questions from {args.question_file}")
+    
+    if len(questions) == 0:
+        print(f"WARNING: No questions found in file: {args.question_file}")
+        return
+        
     questions = get_chunk(questions, args.num_chunks, args.chunk_idx)
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
@@ -118,19 +152,47 @@ def eval_model(args):
     cnt = -1
     for i, line in enumerate(tqdm(questions)):
         cnt += 1
-        idx = line["id"]
-        # question = line['conversations'][0]
-        # gt_ans = line["conversations"][1]
-
+        if i == 0:
+            print("First question item keys:", line.keys())
+            print("Sample question item (first 500 chars):", str(line)[:500])
+        
+        # Handle different ID field names
+        if "id" in line:
+            idx = line["id"]
+        elif "question_id" in line:
+            idx = line["question_id"]
+        else:
+            # Fallback to a generated ID if none exists
+            idx = f"q_{i}"
+        
+        # Handle different question/answer field structures
         try:
-            question = line["conversations"][0] # ['value'].split('\n')[0]
-            gt_ans = line["conversations"][1] # ['value']        
-        except:
-            question = line["conversatons"][0] # ['value'].split('\n')[0]
-            gt_ans = line["conversatons"][1] # ['value']    
-
-        qs = question['value']
-
+            if "conversations" in line:
+                question = line["conversations"][0]
+                gt_ans = line["conversations"][1]
+                qs = question['value']
+            elif "conversatons" in line:  # Handle typo in field name
+                question = line["conversatons"][0]
+                gt_ans = line["conversatons"][1]
+                qs = question['value']
+            elif "question" in line:
+                # Direct question field format
+                qs = line["question"]
+            elif "text" in line:
+                # Some datasets use 'text' for the question
+                qs = line["text"]
+            else:
+                # Last resort fallback
+                print(f"Warning: Unknown question format for item {idx}, using empty string")
+                qs = ""
+        except Exception as e:
+            print(f"Error processing question {idx}: {e}")
+            print(f"Line content: {line}")
+            qs = ""
+        
+        # Extract answer type if available, otherwise default to 'open'
+        answer_type = line.get('answer_type', 'open')
+        
         qs = qs.replace('<image>', '').strip()
         cur_prompt = qs
         #qs=f"""Question:{qs}\nAnswer:"""
@@ -146,7 +208,7 @@ def eval_model(args):
             cur_prompt = '<image>' + '\n' + cur_prompt
         else:
             images = None
-        if(line['answer_type']=='close' or line['answer_type']=='CLOSED'):
+        if(answer_type=='close' or answer_type=='CLOSED'):
             #qs = qs + '\n' + "Answer with yes or no"
             if args.single_pred_prompt:
                 qs = qs + '\n' + "Answer with the option's letter from the given choices directly."
