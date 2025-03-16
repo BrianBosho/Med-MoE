@@ -1,80 +1,67 @@
-import torch
-from PIL import Image
-from .base import ImageEncoder
+"""
+SigClip encoder implementation for using Google's SigLip models.
+"""
 
-class SigClipEncoder(ImageEncoder):
+import torch
+from transformers import AutoModel, AutoImageProcessor
+
+class SigClipEncoder:
     """SigCLIP-based image encoder."""
     
-    def __init__(self, model_name="google/siglip-base-patch16-224", device=None):
+    def __init__(self, model_name_or_path, config=None):
         """
         Initialize a SigCLIP encoder.
         
         Args:
-            model_name: SigCLIP model variant to use 
-                       (e.g., 'google/siglip-base-patch16-224', 'google/siglip-large-patch16-384')
-            device: Device to run the model on ('cpu', 'cuda', etc.)
+            model_name_or_path: SigCLIP model variant to use 
+                (e.g., "google/siglip-base-patch16-224")
+            config: Configuration object with optional parameters
         """
-        super().__init__(device=device)
+        self.model_name_or_path = model_name_or_path
+        self.config = config
+        self.is_loaded = False
+        self.model = None
+        self.image_processor = None
         
-        # Import here to not require the dependency if not using this encoder
-        try:
-            from transformers import AutoProcessor, AutoModel
-        except ImportError:
-            raise ImportError(
-                "Transformers is not installed. Please install it with: pip install transformers"
-            )
+    def load_model(self):
+        """Load the SigLip vision model and image processor."""
+        self.model = AutoModel.from_pretrained(self.model_name_or_path)
+        self.image_processor = AutoImageProcessor.from_pretrained(self.model_name_or_path)
+        self.is_loaded = True
         
-        # Load the processor and model
-        self.processor = AutoProcessor.from_pretrained(model_name)
+    def to(self, **kwargs):
+        """Move model to specified device and dtype."""
+        if self.model is not None:
+            self.model = self.model.to(**kwargs)
+        return self
         
-        # Load the full model first
-        full_model = AutoModel.from_pretrained(model_name)
-        
-        # Use only the vision model component since we only need image embeddings
-        self.model = full_model.vision_model.to(self.device)
-        
-        # Extract the hidden_size from the vision_config
-        self._embedding_dim = full_model.config.vision_config.hidden_size
-        
-    def encode(self, images):
+    def forward(self, images):
         """
         Encode images using SigCLIP.
         
         Args:
-            images: List of PIL images or tensor
+            images: Tensor of preprocessed images
             
         Returns:
-            Image embeddings as tensor
+            Tensor of image embeddings
         """
-        with torch.no_grad():
-            # Handle different input types
-            if isinstance(images, torch.Tensor):
-                # This is more complex for SigLip since it expects PIL images
-                # For simplicity, we'll raise an error
-                raise ValueError("SigCLIP encoder expects PIL images, not tensors")
-            elif isinstance(images, list):
-                # Process list of PIL images
-                inputs = self.processor(images=images, return_tensors="pt").to(self.device)
-            elif isinstance(images, Image.Image):
-                # Process a single PIL image
-                inputs = self.processor(images=[images], return_tensors="pt").to(self.device)
-            else:
-                raise ValueError(f"Unsupported image type: {type(images)}")
+        if not self.is_loaded:
+            self.load_model()
             
-            # Extract just the pixel_values for the vision model
-            pixel_values = inputs.pixel_values if hasattr(inputs, 'pixel_values') else inputs['pixel_values']
-            
-            # Generate embeddings using only the vision model component
-            outputs = self.model(pixel_values=pixel_values)
-            
-            # SigLip vision model uses the pooler_output for image embeddings
-            embeddings = outputs.pooler_output
-            
-            # Normalize embeddings (important for comparison)
-            embeddings = embeddings / embeddings.norm(dim=-1, keepdim=True)
-            
-            return embeddings
-    
-    def get_embedding_dim(self):
-        """Return embedding dimension."""
-        return self._embedding_dim 
+        # Check if images are already preprocessed tensors
+        if isinstance(images, torch.Tensor):
+            outputs = self.model(pixel_values=images, output_hidden_states=True)
+        else:
+            # For PIL images, preprocess first
+            raise ValueError("SigCLIP encoder expects preprocessed tensors, not PIL images")
+        
+        # Get the hidden states from the selected layer
+        select_layer = getattr(self.config, 'mm_vision_select_layer', -2)
+        hidden_states = outputs.hidden_states[select_layer]
+        
+        # Return the appropriate feature type
+        select_feature = getattr(self.config, 'mm_vision_select_feature', 'patch')
+        if select_feature == 'patch':
+            return hidden_states[:, 1:]  # Skip the CLS token
+        else:
+            return hidden_states[:, 0]  # Return only the CLS token 

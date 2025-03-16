@@ -1,0 +1,31 @@
+# Med-MoE Configuration for Encoders and Projectors
+
+# Image Encoder Configuration
+# image_encoder:
+#   type: "clip"  # Options: clip, sigclip, custom
+#   model_name: "openai/clip-vit-large-patch14"
+#   select_layer: -1
+#   select_feature: "patch"  # Options: patch, cls_patch
+#   use_encoder_framework: true  # Whether to use the encoders framework
+image_encoder:
+  type: "sigclip"  # Options: clip, sigclip, custom
+  model_name: "google/siglip-large-patch16-256"  # Updated to a SigLIP model
+  select_layer: -1
+  select_feature: "patch"  # Options: patch, cls_patch
+  use_encoder_framework: true  # Whether to use the encoders framework
+# Video Encoder Configuration
+video_encoder:
+  type: "none"  # Options: none, languagebind, custom
+  model_name: "languagebind/LanguageBind_Video_merge"
+  select_layer: -1
+  select_feature: "patch"
+
+# Multimodal Projector Configuration
+projector:
+  image_projector_type: "linear"  # Options: linear, mlp, qformer, simple_in0_out0, etc.
+  mm_hidden_size: 1024  # Hidden size of the multimodal encoder
+  hidden_size: 4096     # Hidden size of the language model
+
+# Advanced Configuration
+cache_dir: "./cache_dir"  # Directory to cache models
+precision: "float16"     # Computation precision 

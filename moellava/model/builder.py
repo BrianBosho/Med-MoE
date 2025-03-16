@@ -71,6 +71,7 @@ def load_pretrained_model(model_path="", model_base=None, model_name=None, load_
         
     try:
         config = AutoConfig.from_pretrained(config_path)
+        config.mm_vision_tower = "openai/clip-vit-large-patch14"
         if hasattr(config, 'mm_vision_tower') and config.mm_vision_tower is not None:
             # Check if custom_vision_config is provided to override vision tower
             custom_vision_config = kwargs.get('custom_vision_config', None)
