@@ -1,4 +1,4 @@
-# Enhanced Model Builder Guide
+d projecto# Enhanced Model Builder Guide
 
 This comprehensive guide explains the enhanced model builder for MoELLaVA, including its modular architecture, pluggable vision encoders, and configurable projectors for multimodal models.
 

@@ -113,6 +113,42 @@ python run_eval.py \
     --output ./data_RAD/wrong_answers.json
 ```
 
+## Enhanced Builder and Custom Encoders
+
+Med-MoE includes an enhanced model builder that supports various vision encoders for medical imaging tasks.
+
+### Available Vision Encoders
+
+- **CLIP**: Default encoder suitable for general visual tasks
+- **SigClip**: Google's SigLip model with improved zero-shot performance
+- **BiomedCLIP**: Specialized encoder for medical imagery and biomedical applications
+
+### Using Custom Encoders
+
+```python
+from moellava.model.builder_enhanced import load_pretrained_model
+
+# Example with BiomedCLIP encoder
+config = {
+    "model_name_or_path": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    "mm_vision_tower": "microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224",
+    "encoder_type": "biomedclip",
+    "projector_type": "mlp",
+    "mm_projector_hidden_size": 1024
+}
+
+model, image_processor, tokenizer, context_len = load_pretrained_model(
+    config, device="cuda"
+)
+```
+
+### Documentation and Tests
+
+- **Documentation**: See the comprehensive guide in [`tests/docs/ENHANCED_BUILDER_DOCS.md`](tests/docs/ENHANCED_BUILDER_DOCS.md)
+- **Tests**: Example test scripts are available in the [`tests`](tests/) directory
+
+For more details on custom encoders, projector types, and configuration options, refer to the documentation.
+
 ## Acknowledgements
 
 Special thanks to these foundational works:
