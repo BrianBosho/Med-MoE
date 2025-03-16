@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>medmoe tutorial.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<p><think>I need to create a comprehensive tutorial that explains the Med-MoE model architecture, codebase, inference process, and how models are loaded. Let me structure this systematically by exploring the key components of the codebase.</p>
+<p>First, I should look at the high-level model architecture and the overall framework flow. I'll then dive into the specific model implementation, how inference works, and how models are loaded and used.</think>I'll create a comprehensive tutorial that explains the Med-MoE framework, models, code structure, and inference process. Let's dive into the architecture and implementation details of this medical visual question answering system.</p>
+<h1 id="comprehensive-tutorial-med-moe-medical-mixture-of-experts">Comprehensive Tutorial: Med-MoE (Medical Mixture of Experts)</h1>
+<h2 id="1-introduction-to-med-moe">1. Introduction to Med-MoE</h2>
+<p>Let me first check the architecture and overall framework description:</p>
+<p>Read file: README.md
+Now, let's examine the model architecture by looking at key model implementation files:</p>
+<p>Ran tool
+Let's look at the main model builder to understand how models are constructed:</p>
+<p>Read file: moellava/model/builder.py
+Let's examine how inference is done by checking the CLI script:</p>
+<p>Read file: moellava/serve/cli.py
+Let's check the MoE-specific implementation for Phi, since that's the model you were using:</p>
+<p>Read file: moellava/model/language_model/llava_phi_moe.py
+Let's also check how routers work in the MoE architecture:</p>
+<p>Read file: moe/layer.py
+Based on these files and the process we observed, I can now put together a comprehensive tutorial on the Med-MoE model, its architecture, and how inference works.</p>
+<h1 id="comprehensive-tutorial-med-moe-framework">Comprehensive Tutorial: Med-MoE Framework</h1>
+<h2 id="1-introduction-to-med-moe">1. Introduction to Med-MoE</h2>
+<p>Med-MoE (Medical Mixture of Experts) is a novel and lightweight framework designed for medical visual question answering tasks. It's specifically built to handle both discriminative and generative multimodal medical tasks, making it highly effective for clinical applications.</p>
+<p>The core innovation of Med-MoE is its three-step learning process:</p>
+<ol>
+<li>Aligning multimodal medical images with LLM tokens</li>
+<li>Instruction tuning with a trainable router for expert selection</li>
+<li>Domain-specific MoE (Mixture of Experts) tuning</li>
+</ol>
+<p>What makes Med-MoE special is its use of highly specialized domain-specific experts, which reduces the required parameters by 30-50% while maintaining or exceeding state-of-the-art performance. This makes it ideal for resource-constrained clinical environments.</p>
+<h2 id="2-architecture-overview">2. Architecture Overview</h2>
+<h3 id="21-core-components">2.1 Core Components</h3>
+<p>The Med-MoE framework consists of the following key components:</p>
+<ol>
+<li><strong>Vision Encoder</strong>: Processes medical images using a vision transformer (ViT) architecture.</li>
+<li><strong>Multimodal Projector</strong>: Connects the vision encoder outputs to the language model.</li>
+<li><strong>Language Model with MoE Layers</strong>: A language model (Phi-2 or StableLM) enhanced with Mixture of Experts layers.</li>
+<li><strong>Router</strong>: Dynamically directs inputs to the most relevant expert modules.</li>
+<li><strong>Domain-Specific Experts</strong>: Specialized neural networks trained for different medical domains.</li>
+</ol>
+<h3 id="22-mixture-of-experts-moe-architecture">2.2 Mixture of Experts (MoE) Architecture</h3>
+<p>The MoE architecture is the central innovation in Med-MoE:</p>
+<ul>
+<li><strong>Router Network</strong>: Takes input tokens and decides which expert(s) should process them.</li>
+<li><strong>Expert Modules</strong>: Specialized networks that each focus on different aspects of medical understanding.</li>
+<li><strong>Top-k Routing</strong>: Usually configured to use the top 2 most relevant experts for each input.</li>
+<li><strong>Load Balancing</strong>: Ensures that experts are utilized efficiently during training and inference.</li>
+</ul>
+<h3 id="23-supported-base-models">2.3 Supported Base Models</h3>
+<p>Med-MoE supports multiple base language models, including:</p>
+<ul>
+<li>Phi-2</li>
+<li>StableLM-1.6B</li>
+<li>Llama</li>
+<li>Mistral</li>
+<li>Qwen</li>
+</ul>
+<h2 id="3-code-structure-and-implementation">3. Code Structure and Implementation</h2>
+<h3 id="31-key-directories-and-files">3.1 Key Directories and Files</h3>
+<p>The codebase is organized as follows:</p>
+<ul>
+<li><code>moellava/</code>: Main package directory
+<ul>
+<li><code>model/</code>: Model implementations
+<ul>
+<li><code>language_model/</code>: Base language models with MoE integration</li>
+<li><code>multimodal_encoder/</code>: Vision encoder implementations</li>
+<li><code>multimodal_projector/</code>: Connectors between vision and language</li>
+</ul>
+</li>
+<li><code>serve/</code>: Inference serving code
+<ul>
+<li><code>cli.py</code>: Command-line interface for inference</li>
+<li><code>gradio_web_server.py</code>: Web UI for interactive inference</li>
+</ul>
+</li>
+<li><code>mm_utils.py</code>: Multimodal utilities</li>
+<li><code>constants.py</code>: Model constants and tokens</li>
+</ul>
+</li>
+<li><code>moe/</code>: MoE implementation
+<ul>
+<li><code>layer.py</code>: Core MoE layer implementation</li>
+</ul>
+</li>
+</ul>
+<h3 id="32-moe-implementation">3.2 MoE Implementation</h3>
+<p>The MoE layer implementation in <code>moe/layer.py</code> is a modified version of DeepSpeed's MoE, with the following key components:</p>
+<pre class="hljs"><code><div><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MoE</span><span class="hljs-params">(torch.nn.Module)</span>:</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__init__</span><span class="hljs-params">(self,
+                 hidden_size,
+                 expert,
+                 num_experts=<span class="hljs-number">1</span>,
+                 ep_size=<span class="hljs-number">1</span>,
+                 k=<span class="hljs-number">1</span>,
+                 capacity_factor=<span class="hljs-number">1.</span>,
+                 eval_capacity_factor=<span class="hljs-number">1.</span>,
+                 min_capacity=<span class="hljs-number">4</span>,
+                 use_residual=False,
+                 ...)</span>:</span>
+</div></code></pre>
+<ul>
+<li><code>hidden_size</code>: Dimension of input/output embeddings</li>
+<li><code>expert</code>: The expert module to replicate</li>
+<li><code>num_experts</code>: Total number of experts</li>
+<li><code>k</code>: Number of experts to route each token to (typically 1 or 2)</li>
+<li><code>capacity_factor</code>: Controls how many tokens each expert can process</li>
+</ul>
+<p>The router network uses <code>TopKGate</code> to determine which experts should process each token:</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># From the DeepSpeed implementation that Med-MoE is based on</span>
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TopKGate</span><span class="hljs-params">(torch.nn.Module)</span>:</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__init__</span><span class="hljs-params">(self, model_dim, num_experts, k=<span class="hljs-number">1</span>, capacity_factor=<span class="hljs-number">1.0</span>, eval_capacity_factor=<span class="hljs-number">1.0</span>, min_capacity=<span class="hljs-number">4</span>, ...)</span>:</span>
+        <span class="hljs-comment"># Router network that outputs routing probabilities for each token</span>
+</div></code></pre>
+<h3 id="33-model-specific-moe-implementation">3.3 Model-Specific MoE Implementation</h3>
+<p>For Phi-2 models, the MoE implementation in <code>llava_phi_moe.py</code> extends the base Phi model:</p>
+<pre class="hljs"><code><div><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MoELLaVAPhiConfig</span><span class="hljs-params">(PhiConfig)</span>:</span>
+    model_type = <span class="hljs-string">"moe_llava_phi"</span>
+    
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__init__</span><span class="hljs-params">(self,
+                 moe_enable=True,
+                 moe_mode=<span class="hljs-string">'sparse'</span>,
+                 moe_layers_idx=None,
+                 ep_size=<span class="hljs-number">1</span>,
+                 top_k_experts=<span class="hljs-number">2</span>,
+                 capacity_factor=<span class="hljs-number">1.</span>,
+                 eval_capacity_factor=<span class="hljs-number">1.</span>,
+                 min_capacity=<span class="hljs-number">4</span>,
+                 use_residual=False,
+                 router_aux_loss_coef=<span class="hljs-number">0.01</span>,
+                 **kwargs)</span>:</span>
+</div></code></pre>
+<p>The MoE-enhanced Phi model replaces standard feed-forward layers with MoE layers in specified positions.</p>
+<h2 id="4-model-loading-process">4. Model Loading Process</h2>
+<p>The model loading process is implemented in <code>moellava/model/builder.py</code> through the <code>load_pretrained_model</code> function:</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">load_pretrained_model</span><span class="hljs-params">(model_path=<span class="hljs-string">""</span>, model_base=None, model_name=None, load_8bit=False, load_4bit=False, device_map=<span class="hljs-string">"auto"</span>, device=<span class="hljs-string">"cuda"</span>, ...)</span>:</span>
+</div></code></pre>
+<p>Here's what happens during model loading:</p>
+<ol>
+<li><strong>Identify Model Type</strong>: The code determines which model type (Phi, StableLM, etc.) based on the model path or name.</li>
+<li><strong>Load Tokenizer</strong>: Loads the appropriate tokenizer for the model.</li>
+<li><strong>Load Vision Encoder</strong>: Loads and initializes the vision encoder component.</li>
+<li><strong>Load Language Model</strong>: Loads the base language model with MoE layers.</li>
+<li><strong>Load Projector</strong>: Loads the projection layers that connect vision and language components.</li>
+<li><strong>Quantization (optional)</strong>: Applies 4-bit or 8-bit quantization if specified to reduce memory usage.</li>
+</ol>
+<h2 id="5-inference-process">5. Inference Process</h2>
+<p>The inference process in Med-MoE handles both image processing and text generation. Let's examine how it works:</p>
+<h3 id="51-cli-inference">5.1 CLI Inference</h3>
+<p>The command-line interface in <code>moellava/serve/cli.py</code> allows for interactive inference:</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">main</span><span class="hljs-params">(args)</span>:</span>
+    <span class="hljs-comment"># Load model components</span>
+    tokenizer, model, processor, context_len = load_pretrained_model(args.model_path, args.model_base, model_name, args.load_8bit, args.load_4bit, device=args.device)
+    
+    <span class="hljs-comment"># Load and process image</span>
+    image = load_image(args.image_file)
+    image_tensor = process_images([image], image_processor, model.config)
+    
+    <span class="hljs-comment"># Interactive loop</span>
+    <span class="hljs-keyword">while</span> <span class="hljs-literal">True</span>:
+        inp = input(<span class="hljs-string">f"<span class="hljs-subst">{roles[<span class="hljs-number">0</span>]}</span>: "</span>)
+        <span class="hljs-comment"># Process input with image</span>
+        <span class="hljs-comment"># Generate response</span>
+</div></code></pre>
+<p>The CLI inference process:</p>
+<ol>
+<li>Loads the model, tokenizer, and processor</li>
+<li>Processes the input image</li>
+<li>Takes user input in an interactive loop</li>
+<li>Combines the processed image with the text input</li>
+<li>Generates a response using the model</li>
+</ol>
+<h3 id="52-web-interface">5.2 Web Interface</h3>
+<p>For more user-friendly interaction, the Gradio web interface in <code>moellava/serve/gradio_web_server.py</code> provides a graphical interface:</p>
+<pre class="hljs"><code><div>deepspeed --include localhost:0 moellava/serve/gradio_web_server.py --model-path <span class="hljs-string">"./MedMoE-phi2"</span>
+</div></code></pre>
+<h3 id="53-internal-inference-flow">5.3 Internal Inference Flow</h3>
+<p>The complete inference flow works as follows:</p>
+<ol>
+<li>
+<p><strong>Image Processing</strong>:</p>
+<ul>
+<li>Image is loaded and resized</li>
+<li>Processed through the vision encoder to produce image embeddings</li>
+</ul>
+</li>
+<li>
+<p><strong>Input Preparation</strong>:</p>
+<ul>
+<li>User text is tokenized</li>
+<li>Special image tokens are inserted in the text</li>
+<li>Image embeddings are associated with these special tokens</li>
+</ul>
+</li>
+<li>
+<p><strong>MoE Routing</strong>:</p>
+<ul>
+<li>As input flows through the model, the router network determines which experts to use</li>
+<li>For medical content, domain-specific experts are activated</li>
+</ul>
+</li>
+<li>
+<p><strong>Text Generation</strong>:</p>
+<ul>
+<li>The model generates text autoregressively</li>
+<li>At each step, the most relevant experts are selected for that token</li>
+<li>The process continues until an end token or maximum length is reached</li>
+</ul>
+</li>
+</ol>
+<h2 id="6-domain-specific-routing">6. Domain-Specific Routing</h2>
+<p>What makes Med-MoE particularly powerful is its domain-specific routing. The router has been trained to recognize different medical domains (e.g., radiology, pathology, dermatology) and direct tokens to the appropriate experts.</p>
+<p>The router is loaded from a pre-trained checkpoint:</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># Using the medical domain router</span>
+phi_router = torch.load(<span class="hljs-string">"phi_router.pth"</span>)
+stablelm_router = torch.load(<span class="hljs-string">"stablelm_router.pth"</span>)
+</div></code></pre>
+<p>During inference, the router analyzes the content and context to decide which expert should handle each part of the processing, ensuring that specialized medical knowledge is applied appropriately.</p>
+<h2 id="7-practical-usage">7. Practical Usage</h2>
+<h3 id="71-command-line-inference">7.1 Command-Line Inference</h3>
+<p>To run inference on a medical image:</p>
+<pre class="hljs"><code><div>deepspeed --include localhost:0 moellava/serve/cli.py --model-path <span class="hljs-string">"./MedMoE-phi2"</span> --image-file <span class="hljs-string">"image.jpg"</span>
+</div></code></pre>
+<p>For 4-bit quantization (to reduce memory usage):</p>
+<pre class="hljs"><code><div>deepspeed --include localhost:0 moellava/serve/cli.py --model-path <span class="hljs-string">"./MedMoE-phi2"</span> --image-file <span class="hljs-string">"image.jpg"</span> --load-4bit
+</div></code></pre>
+<h3 id="72-web-interface">7.2 Web Interface</h3>
+<p>To start the web interface:</p>
+<pre class="hljs"><code><div>deepspeed --include localhost:0 moellava/serve/gradio_web_server.py --model-path <span class="hljs-string">"./MedMoE-phi2"</span>
+</div></code></pre>
+<h3 id="73-example-prompts">7.3 Example Prompts</h3>
+<p>Once the model is loaded, you can ask questions about medical images:</p>
+<ul>
+<li>&quot;What abnormality is shown in this image?&quot;</li>
+<li>&quot;What organ is shown here?&quot;</li>
+<li>&quot;What is the diagnosis based on this image?&quot;</li>
+<li>&quot;Describe the pathology visible in this image.&quot;</li>
+<li>&quot;What are the key findings in this scan?&quot;</li>
+</ul>
+<h2 id="8-model-performance-and-efficiency">8. Model Performance and Efficiency</h2>
+<p>Med-MoE achieves impressive efficiency compared to other medical VQA models:</p>
+<ul>
+<li><strong>Parameter Reduction</strong>: 30-50% fewer parameters than comparable models</li>
+<li><strong>Inference Speed</strong>: Faster inference due to sparsely activated experts</li>
+<li><strong>Memory Usage</strong>: Lower memory footprint, especially with 4-bit quantization</li>
+<li><strong>Performance</strong>: Maintains or exceeds the performance of larger models</li>
+</ul>
+<h2 id="9-advanced-customization">9. Advanced Customization</h2>
+<p>For those looking to customize or extend Med-MoE:</p>
+<h3 id="91-adding-new-experts">9.1 Adding New Experts</h3>
+<p>You can add new domain-specific experts by:</p>
+<ol>
+<li>Training specialized modules for new medical domains</li>
+<li>Integrating them into the MoE architecture</li>
+<li>Updating the router to recognize and route to these new experts</li>
+</ol>
+<h3 id="92-fine-tuning-the-router">9.2 Fine-tuning the Router</h3>
+<p>The router can be fine-tuned to better recognize specific medical subdomains:</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># As shown in Router_Train.ipynb</span>
+<span class="hljs-comment"># Train the router on domain-specific data</span>
+</div></code></pre>
+<h3 id="93-custom-inference">9.3 Custom Inference</h3>
+<p>For custom deployments, you can use the model programmatically:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">from</span> moellava.model.builder <span class="hljs-keyword">import</span> load_pretrained_model
+<span class="hljs-keyword">from</span> moellava.mm_utils <span class="hljs-keyword">import</span> process_images
+<span class="hljs-keyword">from</span> PIL <span class="hljs-keyword">import</span> Image
+
+<span class="hljs-comment"># Load model components</span>
+tokenizer, model, processor, context_len = load_pretrained_model(<span class="hljs-string">"./MedMoE-phi2"</span>, load_4bit=<span class="hljs-literal">True</span>)
+
+<span class="hljs-comment"># Process image</span>
+image = Image.open(<span class="hljs-string">"medical_image.jpg"</span>)
+image_tensor = process_images([image], processor[<span class="hljs-string">'image'</span>], model.config)
+
+<span class="hljs-comment"># Generate response</span>
+prompt = <span class="hljs-string">"What abnormality is shown in this image?"</span>
+input_ids = tokenizer.encode(prompt, return_tensors=<span class="hljs-string">"pt"</span>)
+outputs = model.generate(input_ids, images=image_tensor, max_new_tokens=<span class="hljs-number">100</span>)
+response = tokenizer.decode(outputs[<span class="hljs-number">0</span>])
+</div></code></pre>
+<h2 id="10-conclusion">10. Conclusion</h2>
+<p>Med-MoE represents a significant advancement in medical visual question answering by combining the power of large language models with domain-specific expertise through its Mixture of Experts architecture. The framework's efficiency and performance make it highly suitable for clinical settings where computational resources may be limited.</p>
+<p>By leveraging specialized experts and dynamic routing, Med-MoE is able to provide accurate and contextually appropriate responses to medical image queries across various specialties, demonstrating the potential of sparse expert models in healthcare applications.</p>
+
+</body>
+</html>

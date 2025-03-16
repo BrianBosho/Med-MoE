@@ -19,24 +19,44 @@ class EncoderVisionTower(nn.Module):
         self.select_layer = getattr(args, 'mm_vision_select_layer', -1)
         self.select_feature = getattr(args, 'mm_vision_select_feature', 'patch')
         
-        # Determine what encoder to use based on image tower name
-        if 'clip' in image_tower.lower():
-            self.encoder_type = 'clip'
-        elif 'siglip' in image_tower.lower() or 'sigclip' in image_tower.lower():
-            self.encoder_type = 'sigclip'
-        else:
-            # Default to CLIP
-            self.encoder_type = 'clip'
+        # Get image size if provided in args
+        self.image_size = getattr(args, 'image_size', None)
+        
+        # Override encoder_type if specified in args
+        self.encoder_type = getattr(args, 'encoder_type', None)
+        
+        # If encoder_type not explicitly provided, determine from image tower name
+        if self.encoder_type is None:
+            if 'clip' in image_tower.lower():
+                self.encoder_type = 'clip'
+            elif 'siglip' in image_tower.lower() or 'sigclip' in image_tower.lower():
+                self.encoder_type = 'sigclip'
+            else:
+                # Default to CLIP
+                self.encoder_type = 'clip'
+        
+        # Print info about the tower configuration
+        print(f"EncoderVisionTower: {self.image_tower_name}")
+        print(f"  Encoder type: {self.encoder_type}")
+        print(f"  Feature selection: {self.select_feature}")
+        if self.image_size:
+            print(f"  Image size: {self.image_size}")
         
         if not delay_load:
             self.load_model()
     
     def load_model(self):
         """Load the encoder model."""
+        # Pass image_size if we have it
+        encoder_kwargs = {}
+        if self.image_size:
+            encoder_kwargs['image_size'] = self.image_size
+            
         self.encoder = create_encoder(
             encoder_type=self.encoder_type,
             model_name=self.image_tower_name,
-            device=self._get_device()
+            device=self._get_device(),
+            **encoder_kwargs
         )
         self.is_loaded = True
     
@@ -53,11 +73,16 @@ class EncoderVisionTower(nn.Module):
         you might need to adapt this.
         """
         if self.select_feature == 'patch':
-            # Skip the [CLS] token
-            return image_features[:, 1:]
+            # Skip the [CLS] token if present, otherwise return all features
+            if image_features.shape[1] > 1:
+                return image_features[:, 1:]
+            return image_features
         elif self.select_feature == 'cls_patch':
             # Keep all tokens including [CLS]
             return image_features
+        elif self.select_feature == 'cls':
+            # Return only the [CLS] token if present, otherwise first token
+            return image_features[:, 0:1]
         else:
             raise ValueError(f'Unexpected select feature: {self.select_feature}')
     

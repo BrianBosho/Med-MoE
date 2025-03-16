@@ -45,9 +45,30 @@ clip-vit-large-patch14-336/
 *.npy
 *.npz
 
+# Additional model and data related files
+**/models--*/
+**/*model*/
+**/*checkpoint*/
+**/*.ckpt
+**/*.pt
+**/*.onnx
+**/*.joblib
+**/*.hdf5
+**/*.safetensors*
+**/*.jsonl
+**/*-of-*/
+**/*.metadata
+**/.cache/
+**/blobs/
+
 # Logs and results
 logs/
 results/
+**/wandb/
+**/run*/
+**/output*/
+**/experiment*/
+**/tensorboard/
 
 # Temporary files
 *.swp
@@ -55,6 +76,10 @@ results/
 .DS_Store
 .idea/
 .vscode/
+tmp/
+temp/
+*.log
+*.tmp
 
 # Allow specific files if needed
 # !data/README.md
@@ -65,4 +90,5 @@ results/
 **/model-*.safetensors
 **/pytorch_model.bin
 **/tf_model.h5
-**/data-*.arrow 
+**/data-*.arrow
+**/*.zip 

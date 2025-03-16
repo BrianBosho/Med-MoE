@@ -50,14 +50,20 @@ from moellava.constants import DEFAULT_IMAGE_PATCH_TOKEN, DEFAULT_IM_START_TOKEN
 from moellava.model.language_model.qwen.tokenization_qwen import QWenTokenizer
 
 
-def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, load_4bit=False, device_map="auto",
+def load_pretrained_model(model_path="", model_base=None, model_name=None, load_8bit=False, load_4bit=False, device_map="auto",
                           device="cuda", padding_side="right", merge=False, **kwargs):
     kwargs = {"device_map": device_map, **kwargs}
 
     # Initialize processor at the beginning
     processor = {'image': None, 'video': None}
-
-    # Load config first to check for vision tower
+    
+    # Ensure model_name is not None to avoid NoneType errors
+    if model_name is None:
+        import os
+        model_name = os.path.basename(model_path.rstrip('/'))
+        print(f"Warning: model_name was None, using '{model_name}' derived from model_path")
+    
+    # Configure model loading based on parameters
     if model_base:
         config_path = model_base
     else:
@@ -66,8 +72,56 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
     try:
         config = AutoConfig.from_pretrained(config_path)
         if hasattr(config, 'mm_vision_tower') and config.mm_vision_tower is not None:
-            from transformers import CLIPImageProcessor
-            image_processor = CLIPImageProcessor.from_pretrained(config.mm_vision_tower)
+            # Check if custom_vision_config is provided to override vision tower
+            custom_vision_config = kwargs.get('custom_vision_config', None)
+            if custom_vision_config is not None and hasattr(custom_vision_config, 'mm_vision_tower'):
+                vision_tower_path = custom_vision_config.mm_vision_tower
+                print(f"Using custom vision tower: {vision_tower_path}")
+                # Update config with the custom vision tower
+                config.mm_vision_tower = vision_tower_path
+                # Get encoder type from custom config
+                encoder_type = getattr(custom_vision_config, 'encoder_type', None)
+            else:
+                # Use default encoder type from kwargs
+                encoder_type = kwargs.get('encoder_type', None)
+            
+            # Try to load the encoder framework only when encoder_type is specified
+            if encoder_type:
+                try:
+                    from encoders.factory import create_encoder
+                    from encoders import EncoderVisionTower
+                    print(f"Using custom {encoder_type} encoder for {config.mm_vision_tower}")
+                    # Still load CLIP processor for compatibility
+                    from transformers import CLIPImageProcessor
+                    
+                    # Check if custom_vision_config has an image_size attribute
+                    custom_vision_config = kwargs.get('custom_vision_config', None)
+                    processor_kwargs = {}
+                    if custom_vision_config and hasattr(custom_vision_config, 'image_size'):
+                        size = custom_vision_config.image_size
+                        print(f"Using custom image size: {size} for image processor")
+                        processor_kwargs['size'] = {"height": size, "width": size}
+                    
+                    # Create processor with custom size if specified
+                    image_processor = CLIPImageProcessor.from_pretrained(
+                        config.mm_vision_tower, 
+                        **processor_kwargs
+                    )
+                except ImportError:
+                    print("Encoder framework not found, falling back to default CLIP processor")
+                    # use SigClip processor
+                    from transformers import SigClipImageProcessor
+                    image_processor = SigClipImageProcessor.from_pretrained(config.mm_vision_tower)
+                    # from transformers import CLIPImageProcessor
+                    # image_processor = CLIPImageProcessor.from_pretrained(config.mm_vision_tower)
+                    print(f"Processor: {image_processor}")
+            else:
+                # Default behavior - use CLIP processor
+                # default to sigclip processor
+                from transformers import SigClipImageProcessor
+                image_processor = SigClipImageProcessor.from_pretrained(config.mm_vision_tower)
+                # from transformers import CLIPImageProcessor
+                # image_processor = CLIPImageProcessor.from_pretrained(config.mm_vision_tower)
             processor['image'] = image_processor
     except Exception as e:
         print(f"Warning: Failed to load config or image processor: {e}")
@@ -88,11 +142,10 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
     else:
         kwargs['torch_dtype'] = torch.float16
 
-    if 'llava' in model_name.lower():
+    if model_name is not None and 'llava' in model_name.lower():
         # Load LLaVA model
-        if 'lora' in model_name.lower() and 'moe' not in model_name.lower() and model_base is None:
+        if model_name is not None and 'lora' in model_name.lower() and 'moe' not in model_name.lower() and model_base is None:
             warnings.warn('There is `lora` in model name but no `model_base` is provided. If you are loading a LoRA model, please provide the `model_base` argument. Detailed instruction: https://github.com/haotian-liu/LLaVA#launch-a-model-worker-lora-weights-unmerged.')
-        #if 'lora' in model_name.lower() and 'moe' not in model_name.lower() and model_base is not None:
         if 'lora' in model_name.lower() and model_base is not None:
             lora_cfg_pretrained = AutoConfig.from_pretrained(model_path)
             tokenizer = AutoTokenizer.from_pretrained(model_base, use_fast=False, padding_side=padding_side)
@@ -634,28 +687,62 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
     # Add fallback for image processor if it's still None
     if processor['image'] is None:
         try:
-            print("Image processor is None, trying to load default CLIP tower as fallback")
-            from transformers import CLIPImageProcessor, CLIPVisionModel
-            from moellava.model.multimodal_encoder.clip_encoder import CLIPVisionTower
+            print("Image processor is None, trying to load default CLIP tower as fallback On the final Section")
             
             # Create a vision tower configuration
             vision_tower_name = "openai/clip-vit-large-patch14"
+            
+            # Check if custom_vision_config is provided
+            custom_vision_config = kwargs.get('custom_vision_config', None)
+            if custom_vision_config:
+                # Use the custom vision tower if provided
+                if hasattr(custom_vision_config, 'mm_vision_tower'):
+                    vision_tower_name = custom_vision_config.mm_vision_tower
+                    print(f"Using custom vision tower: {vision_tower_name} for fallback")
             
             # Create a configuration object with necessary attributes
             class VisionConfig:
                 def __init__(self):
                     self.mm_vision_select_layer = -2  # Default value
                     self.mm_vision_select_feature = 'patch'  # Default value
+                    self.encoder_type = kwargs.get('encoder_type', None)
+                    
+                    # Copy image_size from custom_vision_config if available
+                    if custom_vision_config and hasattr(custom_vision_config, 'image_size'):
+                        self.image_size = custom_vision_config.image_size
+                        print(f"Using custom image size: {self.image_size} for vision config")
             
             vision_config = VisionConfig()
             
-            # Create and load the vision tower
-            vision_tower = CLIPVisionTower(vision_tower_name, args=vision_config)
-            vision_tower.load_model()
-            vision_tower.to(device=device, dtype=torch.float16)
-            
-            # Set the processor
-            processor['image'] = vision_tower.image_processor
+            # Use encoder framework if specified and available
+            if kwargs.get('encoder_type', None):
+                try:
+                    from encoders import EncoderVisionTower
+                    print(f"Using EncoderVisionTower with {kwargs['encoder_type']} encoder")
+                    vision_tower = EncoderVisionTower(vision_tower_name, vision_config)
+                    vision_tower.load_model()
+                    vision_tower.to(device=device, dtype=torch.float16)
+                    
+                    # We still need a CLIP processor for compatibility
+                    from transformers import CLIPImageProcessor
+                    processor['image'] = CLIPImageProcessor.from_pretrained(vision_tower_name)
+                except ImportError:
+                    # Fall back to default CLIP if encoder framework not available
+                    print("Encoder framework not available, falling back to CLIP")
+                    from transformers import CLIPImageProcessor, CLIPVisionModel
+                    from moellava.model.multimodal_encoder.clip_encoder import CLIPVisionTower
+                    vision_tower = CLIPVisionTower(vision_tower_name, args=vision_config)
+                    vision_tower.load_model()
+                    vision_tower.to(device=device, dtype=torch.float16)
+                    processor['image'] = vision_tower.image_processor
+            else:
+                # Use default CLIP vision tower
+                from transformers import CLIPImageProcessor, CLIPVisionModel
+                from moellava.model.multimodal_encoder.clip_encoder import CLIPVisionTower
+                vision_tower = CLIPVisionTower(vision_tower_name, args=vision_config)
+                vision_tower.load_model()
+                vision_tower.to(device=device, dtype=torch.float16)
+                processor['image'] = vision_tower.image_processor
             
             # Attach the vision tower to the model if it has the right methods
             if hasattr(model, 'get_model') and hasattr(model, 'get_image_tower'):
